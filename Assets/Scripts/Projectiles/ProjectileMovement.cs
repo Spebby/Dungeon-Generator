@@ -1,16 +1,14 @@
 using UnityEngine;
 
-public class ProjectileMovement
-{
-    public float speed;
 
-    public ProjectileMovement(float speed)
-    {
-        this.speed = speed;
-    }
+namespace CMPM146.Projectiles {
+    public class ProjectileMovement {
+        public readonly float Speed;
 
-    public virtual void Movement(Transform transform)
-    {
-        
+        public ProjectileMovement(float speed) {
+            Speed = speed;
+        }
+
+        public virtual void Movement(Transform transform) { }
     }
 }

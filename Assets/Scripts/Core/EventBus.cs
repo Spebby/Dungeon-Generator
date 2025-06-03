@@ -1,37 +1,33 @@
-using UnityEngine;
 using System;
+using CMPM146.DamageSystem;
+using CMPM146.Movement;
+using UnityEngine;
 
-public class EventBus 
-{
-    private static EventBus theInstance;
-    public static EventBus Instance
-    {
-        get
-        {
-            if (theInstance == null)
-                theInstance = new EventBus();
-            return theInstance;
+
+namespace CMPM146.Core {
+    public class EventBus {
+        static EventBus _theInstance;
+
+        public static EventBus Instance {
+            get { return _theInstance ??= new EventBus(); }
         }
-    }
 
-    public event Action<Vector3, Damage, Hittable> OnDamage;
-    
-    public void DoDamage(Vector3 where, Damage dmg, Hittable target)
-    {
-        OnDamage?.Invoke(where, dmg, target);
-    }
+        public event Action<Vector3, Damage, Hittable> OnDamage;
 
-    public event Action<Vector3, int, Hittable> OnHeal;
+        public void DoDamage(Vector3 where, Damage dmg, Hittable target) {
+            OnDamage?.Invoke(where, dmg, target);
+        }
 
-    public void DoHeal(Vector3 where, int amount, Hittable target)
-    {
-        OnHeal?.Invoke(where, amount, target);
-    }
+        public event Action<Vector3, int, Hittable> OnHeal;
 
-    public event Action<EnemyController> OnEnemyDeath;
+        public void DoHeal(Vector3 where, int amount, Hittable target) {
+            OnHeal?.Invoke(where, amount, target);
+        }
 
-    public void DoEnemyDeath(EnemyController which)
-    {
-        OnEnemyDeath?.Invoke(which);
+        public event Action<EnemyController> OnEnemyDeath;
+
+        public void DoEnemyDeath(EnemyController which) {
+            OnEnemyDeath?.Invoke(which);
+        }
     }
 }

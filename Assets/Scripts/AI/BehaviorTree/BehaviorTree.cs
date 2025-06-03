@@ -1,34 +1,33 @@
-using UnityEngine;
 using System.Collections.Generic;
+using CMPM146.Movement;
 
-public class BehaviorTree 
-{
-    public enum Result { SUCCESS, FAILURE, IN_PROGRESS };
 
-    public EnemyController agent;
+namespace CMPM146.AI.BehaviorTree {
+    public class BehaviorTree {
+        public enum Result {
+            SUCCESS,
+            FAILURE,
+            IN_PROGRESS
+        };
 
-    public virtual Result Run()
-    {
-        return Result.SUCCESS;
-    }
+        public EnemyController Agent;
 
-    public BehaviorTree()
-    {
+        public virtual Result Run() {
+            return Result.SUCCESS;
+        }
 
-    }
+        public BehaviorTree() { }
 
-    public void SetAgent(EnemyController agent)
-    {
-        this.agent = agent;
-    }
+        public void SetAgent(EnemyController agent) {
+            Agent = agent;
+        }
 
-    public virtual IEnumerable<BehaviorTree> AllNodes()
-    {
-        yield return this;
-    }
+        public virtual IEnumerable<BehaviorTree> AllNodes() {
+            yield return this;
+        }
 
-    public virtual BehaviorTree Copy()
-    {
-        return null;
+        public virtual BehaviorTree Copy() {
+            return null;
+        }
     }
 }

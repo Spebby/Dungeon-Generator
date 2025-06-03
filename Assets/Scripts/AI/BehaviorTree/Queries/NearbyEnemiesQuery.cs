@@ -1,26 +1,26 @@
-public class NearbyEnemiesQuery : BehaviorTree
-{
-    int count;
-    float distance;
+using System.Collections.Generic;
+using CMPM146.Core;
+using UnityEngine;
 
-    public override Result Run()
-    {
-        var nearby = GameManager.Instance.GetEnemiesInRange(agent.transform.position, distance);
-        if (nearby.Count >= count)
-        {
-            return Result.SUCCESS;
+
+namespace CMPM146.AI.BehaviorTree.Queries {
+    public class NearbyEnemiesQuery : BehaviorTree {
+        int _count;
+        float _distance;
+
+        public override Result Run() {
+            List<GameObject> nearby = GameManager.Instance.GetEnemiesInRange(Agent.transform.position, _distance);
+            if (nearby.Count >= _count) return Result.SUCCESS;
+            return Result.FAILURE;
         }
-        return Result.FAILURE;
-    }
 
-    public NearbyEnemiesQuery(int count, float distance) : base()
-    {
-        this.count = count;
-        this.distance = distance;
-    }
+        public NearbyEnemiesQuery(int count, float distance) : base() {
+            _count    = count;
+            _distance = distance;
+        }
 
-    public override BehaviorTree Copy()
-    {
-        return new NearbyEnemiesQuery(count, distance);
+        public override BehaviorTree Copy() {
+            return new NearbyEnemiesQuery(_count, _distance);
+        }
     }
 }

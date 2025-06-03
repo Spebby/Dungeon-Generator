@@ -1,36 +1,22 @@
-using UnityEngine;
 using System.Collections.Generic;
-using System;
+using UnityEngine;
 
-public class Unit : MonoBehaviour
-{
-    
-    public Vector2 movement;
-    public float speed;    
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+namespace CMPM146.Movement {
+    public class Unit : MonoBehaviour {
+        public Vector2 movement;
+        public float speed;
 
-    // Update is called once per frame
-    void FixedUpdate()
-    {
-        movement = movement.normalized * speed;
-        Move(new Vector2(movement.x, 0) * Time.fixedDeltaTime);
-        Move(new Vector2(0, movement.y) * Time.fixedDeltaTime);
-    }
+        void FixedUpdate() {
+            movement = movement.normalized * speed;
+            Move(new Vector2(movement.x, 0) * Time.fixedDeltaTime);
+            Move(new Vector2(0, movement.y) * Time.fixedDeltaTime);
+        }
 
-    public void Move(Vector2 ds)
-    {
-        List<RaycastHit2D> hits = new List<RaycastHit2D>();
-        int n = GetComponent<Rigidbody2D>().Cast(ds, hits, ds.magnitude * 2);
-        if (n == 0)
-        {
-            transform.Translate(ds);
+        public void Move(Vector2 ds) {
+            List<RaycastHit2D> hits = new();
+            int                n    = GetComponent<Rigidbody2D>().Cast(ds, hits, ds.magnitude * 2);
+            if (n == 0) transform.Translate(ds);
         }
     }
-
-
 }

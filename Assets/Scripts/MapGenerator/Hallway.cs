@@ -1,30 +1,34 @@
+using System;
 using UnityEngine;
 
-public class Hallway : MonoBehaviour
-{
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+namespace CMPM146.MapGenerator {
+    public class Hallway : MonoBehaviour {
+        public GameObject Place(Door door) {
+            Vector2Int     where = door.GetGridCoordinates();
+            Door.Direction dir   = door.GetDirection();
+            switch (dir) {
+                case Door.Direction.EAST:
+                    where.x++;
+                    break;
+                case Door.Direction.NORTH:
+                    where.y++;
+                    break;
+                case Door.Direction.SOUTH:
+                case Door.Direction.WEST:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
 
-    public GameObject Place(Door door)
-    {
-        Vector2Int where = door.GetGridCoordinates();
-        var dir = door.GetDirection();
-        if (dir == Door.Direction.EAST) where.x++;
-        if (dir == Door.Direction.NORTH) where.y++;
-        int dx = 0;
-        int dy = 0;
-        if (door.IsHorizontal()) dx = -1;
-        if (door.IsVertical()) dy = -1;
-        var new_room = Instantiate(this, new Vector3(where.x * Room.GRID_SIZE + dx, where.y * Room.GRID_SIZE + dy), Quaternion.identity);
-        return new_room.gameObject;
+            int dx                      = 0;
+            int dy                      = 0;
+            if (door.IsHorizontal()) dx = -1;
+            if (door.IsVertical()) dy   = -1;
+            Hallway newRoom =
+                Instantiate(this, new Vector3(where.x * Room.GRID_SIZE + dx, where.y * Room.GRID_SIZE + dy),
+                            Quaternion.identity);
+            return newRoom.gameObject;
+        }
     }
 }

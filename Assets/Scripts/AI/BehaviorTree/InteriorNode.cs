@@ -1,34 +1,33 @@
 using System.Collections.Generic;
 
-public class InteriorNode : BehaviorTree
-{
-    protected List<BehaviorTree> children;
-    protected int current_child;
 
-    public InteriorNode(IEnumerable<BehaviorTree> children) : base()
-    {
-        this.children = new List<BehaviorTree>();
-        this.children.AddRange(children);
-        current_child = 0;
-    }
+namespace CMPM146.AI.BehaviorTree {
+    public class InteriorNode : BehaviorTree {
+        protected readonly List<BehaviorTree> Children;
+        protected int CurrentChild;
 
-    public List<BehaviorTree> CopyChildren()
-    {
-        List<BehaviorTree> new_children = new List<BehaviorTree>();
-        foreach (var c in children)
-        {
-            new_children.Add(c.Copy());
+        public InteriorNode(IEnumerable<BehaviorTree> children) : base() {
+            Children = new List<BehaviorTree>();
+            Children.AddRange(children);
+            CurrentChild = 0;
         }
-        return new_children;
-    }
 
-    public override IEnumerable<BehaviorTree> AllNodes()
-    {
-        yield return this;
-        foreach (var c in children)
-        {
-            foreach (var n in c.AllNodes())
-                yield return n;
+        public List<BehaviorTree> CopyChildren() {
+            List<BehaviorTree> newChildren = new();
+            foreach (BehaviorTree c in Children) {
+                newChildren.Add(c.Copy());
+            }
+
+            return newChildren;
+        }
+
+        public override IEnumerable<BehaviorTree> AllNodes() {
+            yield return this;
+            foreach (BehaviorTree c in Children) {
+                foreach (BehaviorTree n in c.AllNodes()) {
+                    yield return n;
+                }
+            }
         }
     }
 }

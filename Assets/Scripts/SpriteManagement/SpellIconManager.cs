@@ -1,11 +1,10 @@
-using UnityEngine;
+using CMPM146.Core;
 
-public class SpellIconManager : IconManager
-{
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        GameManager.Instance.spellIconManager = this;
+
+namespace CMPM146.SpriteManagement {
+    public class SpellIconManager : IconManager {
+        void Start() {
+            GameManager.Instance.SpellIconManager = this;
+        }
     }
-
 }

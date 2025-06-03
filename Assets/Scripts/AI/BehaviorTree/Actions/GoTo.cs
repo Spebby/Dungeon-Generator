@@ -1,34 +1,30 @@
+using CMPM146.Movement;
 using UnityEngine;
 
-public class GoTo : BehaviorTree
-{
-    Transform target;
-    float arrived_distance;
 
-    public override Result Run()
-    {
-        Vector3 direction = target.position - agent.transform.position;
-        if (direction.magnitude < arrived_distance)
-        {
-            agent.GetComponent<Unit>().movement = new Vector2(0, 0);
-            return Result.SUCCESS;
-        }
-        else
-        {
-            agent.GetComponent<Unit>().movement = direction.normalized;
+namespace CMPM146.AI.BehaviorTree.Actions {
+    public class GoTo : BehaviorTree {
+        Transform _target;
+        float _arrivedDistance;
+
+        public override Result Run() {
+            Vector3 direction = _target.position - Agent.transform.position;
+            if (direction.magnitude < _arrivedDistance) {
+                Agent.GetComponent<Unit>().movement = new Vector2(0, 0);
+                return Result.SUCCESS;
+            }
+
+            Agent.GetComponent<Unit>().movement = direction.normalized;
             return Result.IN_PROGRESS;
         }
-    }
 
-    public GoTo(Transform target, float arrived_distance) : base()
-    {
-        this.target = target;
-        this.arrived_distance = arrived_distance;
-    }
+        public GoTo(Transform target, float arrivedDistance) : base() {
+            _target          = target;
+            _arrivedDistance = arrivedDistance;
+        }
 
-    public override BehaviorTree Copy()
-    {
-        return new GoTo(target, arrived_distance);
+        public override BehaviorTree Copy() {
+            return new GoTo(_target, _arrivedDistance);
+        }
     }
 }
-

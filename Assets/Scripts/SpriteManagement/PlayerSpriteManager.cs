@@ -1,14 +1,10 @@
-using UnityEngine;
-using UnityEngine.UI;
+using CMPM146.Core;
 
-public class PlayerSpriteManager : IconManager
-{
-  
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        GameManager.Instance.playerSpriteManager = this;
+namespace CMPM146.SpriteManagement {
+    public class PlayerSpriteManager : IconManager {
+        void Start() {
+            GameManager.Instance.PlayerSpriteManager = this;
+        }
     }
-
 }

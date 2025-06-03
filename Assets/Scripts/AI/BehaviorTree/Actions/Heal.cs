@@ -1,25 +1,23 @@
+using CMPM146.Core;
+using CMPM146.Enemies;
 using UnityEngine;
 
-public class Heal : BehaviorTree
-{
-    public override Result Run()
-    {
-        var target = GameManager.Instance.GetClosestOtherEnemy(agent.gameObject);
-        EnemyAction act = agent.GetAction("heal");
-        if (act == null) return Result.FAILURE;
 
-        bool success = act.Do(target.transform);
-        return (success ? Result.SUCCESS : Result.FAILURE);
-        
-    }
+namespace CMPM146.AI.BehaviorTree.Actions {
+    public class Heal : BehaviorTree {
+        public override Result Run() {
+            GameObject  target = GameManager.Instance.GetClosestOtherEnemy(Agent.gameObject);
+            EnemyAction act    = Agent.GetAction("heal");
+            if (act == null) return Result.FAILURE;
 
-    public Heal() : base()
-    {
-        
-    }
+            bool success = act.Do(target.transform);
+            return success ? Result.SUCCESS : Result.FAILURE;
+        }
 
-    public override BehaviorTree Copy()
-    {
-        return new Heal();
+        public Heal() : base() { }
+
+        public override BehaviorTree Copy() {
+            return new Heal();
+        }
     }
 }

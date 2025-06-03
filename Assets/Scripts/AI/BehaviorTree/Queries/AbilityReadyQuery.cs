@@ -1,23 +1,18 @@
-public class AbilityReadyQuery : BehaviorTree
-{
-    string ability;
+namespace CMPM146.AI.BehaviorTree.Queries {
+    public class AbilityReadyQuery : BehaviorTree {
+        string _ability;
 
-    public override Result Run()
-    {
-        if (agent.GetAction(ability).Ready())
-        {
-            return Result.SUCCESS;
+        public override Result Run() {
+            if (Agent.GetAction(_ability).Ready()) return Result.SUCCESS;
+            return Result.FAILURE;
         }
-        return Result.FAILURE;
-    }
 
-    public AbilityReadyQuery(string ability) : base()
-    {
-        this.ability = ability;
-    }
+        public AbilityReadyQuery(string ability) : base() {
+            _ability = ability;
+        }
 
-    public override BehaviorTree Copy()
-    {
-        return new AbilityReadyQuery(ability);
+        public override BehaviorTree Copy() {
+            return new AbilityReadyQuery(_ability);
+        }
     }
 }

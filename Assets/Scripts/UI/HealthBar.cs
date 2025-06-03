@@ -1,40 +1,29 @@
+using CMPM146.DamageSystem;
 using UnityEngine;
-using UnityEngine.UIElements;
 
-public class HealthBar : MonoBehaviour
-{
-    public GameObject slider;
-    
-    public Hittable hp;
-    float old_perc;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-         
-    }
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (hp == null) return;
-        float perc = hp.hp * 1.0f / hp.max_hp;
-        if (Mathf.Abs(old_perc - perc) > 0.01f)
-        {
-            slider.transform.localScale = new Vector3(perc, 1, 1);
-            slider.transform.localPosition = new Vector3(-(1 - perc) / 2, 0, 0);
-            old_perc = perc;
+namespace CMPM146.UI {
+    public class HealthBar : MonoBehaviour {
+        public GameObject slider;
+        public Hittable HP;
+        float _oldRatio;
+
+        void Update() {
+            if (HP == null) return;
+            float ratio = HP.HP * 1.0f / HP.MaxHP;
+            if (!(Mathf.Abs(_oldRatio - ratio) > 0.01f)) return;
+            slider.transform.localScale    = new Vector3(ratio, 1, 1);
+            slider.transform.localPosition = new Vector3(-(1 - ratio) / 2, 0, 0);
+            _oldRatio                       = ratio;
+        }
+
+        public void SetHealth(Hittable hp) {
+            HP = hp;
+            float ratio = hp.HP * 1.0f / hp.MaxHP;
+
+            slider.transform.localScale    = new Vector3(ratio, 1, 1);
+            slider.transform.localPosition = new Vector3(-(1 - ratio) / 2, 0, 0);
+            _oldRatio                       = ratio;
         }
     }
-
-    public void SetHealth(Hittable hp)
-    {
-        this.hp = hp;
-        float perc = hp.hp * 1.0f / hp.max_hp;
-        
-        slider.transform.localScale = new Vector3(perc, 1, 1);
-        slider.transform.localPosition = new Vector3(-(1-perc)/2, 0, 0);
-        old_perc = perc;
-    }
-
-    
 }

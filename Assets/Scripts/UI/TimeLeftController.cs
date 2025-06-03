@@ -1,22 +1,22 @@
-using UnityEngine;
+using CMPM146.Core;
 using TMPro;
+using UnityEngine;
 
-public class TimeLeftController : MonoBehaviour
-{
-    TextMeshProUGUI tmp;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        tmp = GetComponent<TextMeshProUGUI>();
-    }
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (GameManager.Instance.state == GameManager.GameState.INWAVE)
-        {
-            tmp.text = "Time left: " + Mathf.RoundToInt(GameManager.Instance.WinTime() - GameManager.Instance.CurrentTime()) + "s";
+namespace CMPM146.UI {
+    public class TimeLeftController : MonoBehaviour {
+        TextMeshProUGUI _tmp;
+
+        void Start() {
+            _tmp = GetComponent<TextMeshProUGUI>();
         }
-        
+
+        void Update() {
+            if (GameManager.Instance.State == GameManager.GameState.INWAVE) {
+                _tmp.text = "Time left: "
+                          + Mathf.RoundToInt(GameManager.Instance.WinTime() - GameManager.Instance.CurrentTime())
+                          + "s";
+            }
+        }
     }
 }

@@ -1,9 +1,10 @@
-using UnityEngine;
+using CMPM146.Core;
 
-public class RelicIconManager : IconManager
-{
-    void Start()
-    {
-        GameManager.Instance.relicIconManager = this;
+
+namespace CMPM146.SpriteManagement {
+    public class RelicIconManager : IconManager {
+        void Start() {
+            GameManager.Instance.RelicIconManager = this;
+        }
     }
 }

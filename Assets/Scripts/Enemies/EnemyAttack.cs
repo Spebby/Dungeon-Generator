@@ -1,24 +1,27 @@
+using CMPM146.Core;
+using CMPM146.DamageSystem;
 using UnityEngine;
 
-public class EnemyAttack : EnemyAction
-{
-    int damage;
-    public int AttackDamage {  get { return damage;  } }
-    
-    float strength_factor;
-    public float StrengthFactor { get { return strength_factor; } }
 
-    protected override bool Perform(Transform target)
-    {
-        int amount = damage;
-        amount += Mathf.RoundToInt(enemy.GetEffect("strength")*strength_factor);
-        GameManager.Instance.player.GetComponent<PlayerController>().hp.Damage(new Damage(amount, Damage.Type.PHYSICAL));
-        return true;     
-    }
+namespace CMPM146.Enemies {
+    public class EnemyAttack : EnemyAction {
+        int _damage;
+        public int AttackDamage => _damage;
 
-    public EnemyAttack(float cooldown, float range, int damage, float strength_factor): base(cooldown, range)
-    {
-        this.damage = damage;
-        this.strength_factor = strength_factor;
+        float _strengthFactor;
+        public float StrengthFactor => _strengthFactor;
+
+        protected override bool Perform(Transform target) {
+            int amount = _damage;
+            amount += Mathf.RoundToInt(Enemy.GetEffect("strength") * _strengthFactor);
+            GameManager.Instance.Player.GetComponent<PlayerController>().HP
+                       .Damage(new Damage(amount, Damage.Type.PHYSICAL));
+            return true;
+        }
+
+        public EnemyAttack(float cooldown, float range, int damage, float strengthFactor) : base(cooldown, range) {
+            _damage         = damage;
+            _strengthFactor = strengthFactor;
+        }
     }
 }

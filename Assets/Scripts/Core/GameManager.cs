@@ -1,84 +1,83 @@
-using UnityEngine;
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using CMPM146.Spells;
+using CMPM146.SpriteManagement;
+using UnityEngine;
 
-public class GameManager 
-{
-    public enum GameState
-    {
-        PREGAME,
-        INWAVE,
-        WAVEEND,
-        COUNTDOWN,
-        GAMEOVER,
-        PLAYERWIN
-    }
-    public GameState state;
 
-    public int countdown;
-    private static GameManager theInstance;
-    public static GameManager Instance {  get
-        {
-            if (theInstance == null)
-                theInstance = new GameManager();
-            return theInstance;
+namespace CMPM146.Core {
+    public class GameManager {
+        public enum GameState {
+            PREGAME,
+            INWAVE,
+            WAVEEND,
+            COUNTDOWN,
+            GAMEOVER,
+            PLAYERWIN
         }
-    }
 
-    public GameObject player;
-    public float startTime;
-    
-    public ProjectileManager projectileManager;
-    public SpellIconManager spellIconManager;
-    public EnemySpriteManager enemySpriteManager;
-    public PlayerSpriteManager playerSpriteManager;
-    public RelicIconManager relicIconManager;
+        public GameState State;
 
-    private List<GameObject> enemies;
-    public int enemy_count { get { return enemies.Count; } }
+        public int Countdown;
+        static GameManager _theInstance;
 
-    public void AddEnemy(GameObject enemy)
-    {
-        enemies.Add(enemy);
-    }
-    public void RemoveEnemy(GameObject enemy)
-    {
-        enemies.Remove(enemy);
-    }
+        public static GameManager Instance {
+            get { return _theInstance ??= new GameManager(); }
+        }
 
-    public GameObject GetClosestEnemy(Vector3 point)
-    {
-        if (enemies == null || enemies.Count == 0) return null;
-        if (enemies.Count == 1) return enemies[0];
-        return enemies.Aggregate((a,b) => (a.transform.position - point).sqrMagnitude < (b.transform.position - point).sqrMagnitude ? a : b);
-    }
+        public GameObject Player;
+        public float StartTime;
 
-    public GameObject GetClosestOtherEnemy(GameObject self)
-    {
-        Vector3 point = self.transform.position;
-        if (enemies == null || enemies.Count < 2) return null;
-        return enemies.FindAll((a) => a != self).Aggregate((a, b) => (a.transform.position - point).sqrMagnitude < (b.transform.position - point).sqrMagnitude ? a : b);
-    }
+        public ProjectileManager ProjectileManager;
+        public SpellIconManager SpellIconManager;
+        public EnemySpriteManager EnemySpriteManager;
+        public PlayerSpriteManager PlayerSpriteManager;
+        public RelicIconManager RelicIconManager;
 
-    public List<GameObject> GetEnemiesInRange(Vector3 point, float distance)
-    {
-        if (enemies == null || enemies.Count == 0) return null;
-        return enemies.FindAll((a) => (a.transform.position - point).magnitude <= distance);
-    }
+        List<GameObject> _enemies;
+        public int EnemyCount => _enemies.Count;
 
-    private GameManager()
-    {
-        enemies = new List<GameObject>();
-    }
+        public void AddEnemy(GameObject enemy) {
+            _enemies.Add(enemy);
+        }
 
-    public float WinTime()
-    {
-        return 8 * 60;
-    }
+        public void RemoveEnemy(GameObject enemy) {
+            _enemies.Remove(enemy);
+        }
 
-    public float CurrentTime()
-    {
-        return (Time.time - startTime);
+        public GameObject GetClosestEnemy(Vector3 point) {
+            if (_enemies == null || _enemies.Count == 0) return null;
+            if (_enemies.Count == 1) return _enemies[0];
+            return _enemies.Aggregate((a, b) => (a.transform.position - point).sqrMagnitude
+                                              < (b.transform.position - point).sqrMagnitude
+                                          ? a
+                                          : b);
+        }
+
+        public GameObject GetClosestOtherEnemy(GameObject self) {
+            Vector3 point = self.transform.position;
+            if (_enemies == null || _enemies.Count < 2) return null;
+            return _enemies.FindAll((a) => a != self).Aggregate((a, b) => (a.transform.position - point).sqrMagnitude
+                                                                        < (b.transform.position - point).sqrMagnitude
+                                                                    ? a
+                                                                    : b);
+        }
+
+        public List<GameObject> GetEnemiesInRange(Vector3 point, float distance) {
+            if (_enemies == null || _enemies.Count == 0) return null;
+            return _enemies.FindAll((a) => (a.transform.position - point).magnitude <= distance);
+        }
+
+        GameManager() {
+            _enemies = new List<GameObject>();
+        }
+
+        public float WinTime() {
+            return 8 * 60;
+        }
+
+        public float CurrentTime() {
+            return Time.time - StartTime;
+        }
     }
 }

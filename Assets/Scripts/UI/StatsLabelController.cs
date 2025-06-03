@@ -1,37 +1,38 @@
-using UnityEngine;
+using CMPM146.Core;
+using CMPM146.Spells;
 using TMPro;
+using UnityEngine;
 
-public class StatsLabelController : MonoBehaviour
-{
-    TextMeshProUGUI tmp;
-    float last_update;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        tmp = GetComponent<TextMeshProUGUI>();
-        last_update = 0;
-    }
 
-    string f(float v)
-    {
-        return v.ToString("0.00");
-    }
+namespace CMPM146.UI {
+    public class StatsLabelController : MonoBehaviour {
+        TextMeshProUGUI _tmp;
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (last_update + 1f < Time.time)
-        {
-            last_update = Time.time;
-            if (GameManager.Instance.state == GameManager.GameState.INWAVE)
-            {
-                string stats = "\nPlayer Spell Stats\nLifetime: " + f(Spell.Duration()) + "\nSpeed: " + Spell.Speed() + "\nDamage: " + Spell.ProjectileDamage();
-                tmp.text = stats;
-            }
-            else
-            {
-                tmp.text = "";
-            }
+        float _lastUpdate;
+
+        void Start() {
+            _tmp        = GetComponent<TextMeshProUGUI>();
+            _lastUpdate = 0;
+        }
+
+        static string F(float v) {
+            return v.ToString("0.00");
+        }
+
+        void Update() {
+            if (!(_lastUpdate + 1f < Time.time)) return;
+            _lastUpdate = Time.time;
+            if (GameManager.Instance.State == GameManager.GameState.INWAVE) {
+                string stats =
+                    "\nPlayer Spell Stats\nLifetime: "
+                  + F(Spell.Duration())
+                  + "\nSpeed: "
+                  + Spell.Speed()
+                  + "\nDamage: "
+                  + Spell.ProjectileDamage();
+                _tmp.text = stats;
+            } else
+                _tmp.text = "";
         }
     }
 }

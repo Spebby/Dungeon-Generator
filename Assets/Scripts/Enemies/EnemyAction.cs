@@ -1,43 +1,40 @@
+using CMPM146.Movement;
 using UnityEngine;
 
-public class EnemyAction 
-{
-    public float last_use;
-    public float cooldown;
-    public float range;
 
-    public EnemyController enemy;
+namespace CMPM146.Enemies {
+    public class EnemyAction {
+        public float LastUse;
+        public readonly float Cooldown;
+        public readonly float Range;
 
-    public bool Ready()
-    {
-        return (last_use + cooldown < Time.time);
-    }
+        public EnemyController Enemy;
 
-    public bool CanDo(Transform target)
-    {
-        return Ready() && InRange(target);
-    }
+        public bool Ready() {
+            return LastUse + Cooldown < Time.time;
+        }
 
-    public bool InRange(Transform target)
-    {
-        return ((target.position - enemy.transform.position).magnitude <= range);
-    }
+        public bool CanDo(Transform target) {
+            return Ready() && InRange(target);
+        }
 
-    public bool Do(Transform target)
-    {
-        if (!CanDo(target)) return false;
-        last_use = Time.time;
-        return Perform(target);
-    }
+        public bool InRange(Transform target) {
+            return (target.position - Enemy.transform.position).magnitude <= Range;
+        }
 
-    protected virtual bool Perform(Transform target)
-    {
-        return false;
-    }
+        public bool Do(Transform target) {
+            if (!CanDo(target)) return false;
+            LastUse = Time.time;
+            return Perform(target);
+        }
 
-    public EnemyAction(float cooldown, float range)
-    {
-        this.cooldown = cooldown;
-        this.range = range;
+        protected virtual bool Perform(Transform target) {
+            return false;
+        }
+
+        public EnemyAction(float cooldown, float range) {
+            Cooldown = cooldown;
+            Range    = range;
+        }
     }
 }

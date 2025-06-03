@@ -1,23 +1,14 @@
 using UnityEngine;
 
-public class SpawnPoint : MonoBehaviour
-{
-    public enum SpawnName
-    {
-        RED, GREEN, BONE
-    }
 
-    public SpawnName kind;
+namespace CMPM146.Levels {
+    public class SpawnPoint : MonoBehaviour {
+        public enum SpawnName {
+            RED,
+            GREEN,
+            BONE
+        }
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        public SpawnName kind;
     }
 }

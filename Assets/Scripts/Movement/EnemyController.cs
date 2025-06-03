@@ -1,101 +1,84 @@
-using UnityEngine;
 using System.Collections.Generic;
-using TMPro;
+using CMPM146.AI.BehaviorTree;
+using CMPM146.Core;
+using CMPM146.DamageSystem;
+using CMPM146.Enemies;
+using CMPM146.UI;
+using UnityEngine;
+using UnityEngine.Serialization;
 
-public class EnemyController : MonoBehaviour
-{
-    public string monster;
-    public Transform target;
-    public int speed;
-    public Hittable hp;
-    public HealthBar healthui;
-    public bool dead;
 
-    public Dictionary<string, EnemyAction> actions;
-    public Dictionary<string, int> effects;
-    public GameObject strength_pip;
-    List<GameObject> pips;
+namespace CMPM146.Movement {
+    public class EnemyController : MonoBehaviour {
+        public string monster;
+        public Transform target;
+        public int speed;
+        public Hittable HP;
+        public HealthBar healthui;
+        public bool dead;
 
-    public BehaviorTree behavior;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-        target = GameManager.Instance.player.transform;
-        hp.OnDeath += Die;
-        healthui.SetHealth(hp);
-        
-        GetComponent<Unit>().speed = speed;
-        pips = new List<GameObject>();
-    }
+        public Dictionary<string, EnemyAction> Actions;
+        public Dictionary<string, int> Effects;
+        [FormerlySerializedAs("strength_pip")] public GameObject strengthPip;
+        List<GameObject> _pips;
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (GameManager.Instance.state != GameManager.GameState.INWAVE)
-            Destroy(gameObject);
-        else
-        {
-            int str = GetEffect("strength");
-            while (str > pips.Count)
-            {
+        public BehaviorTree Behavior;
 
-                var new_pip = Instantiate(strength_pip, transform);
-                new_pip.transform.localPosition = new Vector3(-0.4f + pips.Count * 0.125f, -0.55f, 0);
-                pips.Add(new_pip);
-                    
-            }
-            while (pips.Count > str)
-            {
-                var pip = pips[pips.Count - 1];
-                pips.RemoveAt(pips.Count - 1);
-                Destroy(pip);
-            }
-            
-            
-            if (behavior != null)
-                behavior.Run();
+        void Start() {
+            target     =  GameManager.Instance.Player.transform;
+            HP.OnDeath += Die;
+            healthui.SetHealth(HP);
+
+            GetComponent<Unit>().speed = speed;
+            _pips                      = new List<GameObject>();
         }
-        
-    }
 
-    public void AddAction(string name, EnemyAction action)
-    {
-        if (actions == null)
-            actions = new Dictionary<string, EnemyAction>();
-        action.enemy = this;
-        actions[name] = action;
-    }
+        void Update() {
+            if (GameManager.Instance.State != GameManager.GameState.INWAVE)
+                Destroy(gameObject);
+            else {
+                int str = GetEffect("strength");
+                while (str > _pips.Count) {
+                    GameObject newPip = Instantiate(strengthPip, transform);
+                    newPip.transform.localPosition = new Vector3(-0.4f + _pips.Count * 0.125f, -0.55f, 0);
+                    _pips.Add(newPip);
+                }
 
-    public EnemyAction GetAction(string name)
-    {
-        return actions.GetValueOrDefault(name, null);
-    }
+                while (_pips.Count > str) {
+                    GameObject pip = _pips[^1];
+                    _pips.RemoveAt(_pips.Count - 1);
+                    Destroy(pip);
+                }
 
-    public void AddEffect(string name, int stacks)
-    {
-        if (effects == null)
-            effects = new Dictionary<string, int>();
-        if (!effects.ContainsKey(name))
-            effects[name] = 0;
 
-        effects[name] += stacks;
-        if (effects[name] > 10) effects[name] = 10;
-    }
-
-    public int GetEffect(string name)
-    {
-        if (effects == null)
-        {
-            return 0;
+                Behavior?.Run();
+            }
         }
-        return effects.GetValueOrDefault(name, 0);
-    }
 
-    void Die()
-    {
-        if (!dead)
-        {
+        public void AddAction(string name, EnemyAction action) {
+            Actions       ??= new Dictionary<string, EnemyAction>();
+            action.Enemy  =   this;
+            Actions[name] =   action;
+        }
+
+        public EnemyAction GetAction(string name) {
+            return Actions.GetValueOrDefault(name, null);
+        }
+
+        public void AddEffect(string name, int stacks) {
+            Effects ??= new Dictionary<string, int>();
+            Effects.TryAdd(name, 0);
+
+            Effects[name] += stacks;
+            if (Effects[name] > 10) Effects[name] = 10;
+        }
+
+        public int GetEffect(string name) {
+            return Effects?.GetValueOrDefault(name, 0) ?? 0;
+        }
+
+        void Die() {
+            if (dead) return;
             dead = true;
             EventBus.Instance.DoEnemyDeath(this);
             GameManager.Instance.RemoveEnemy(gameObject);

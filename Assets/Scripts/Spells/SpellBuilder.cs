@@ -1,21 +1,9 @@
-using UnityEngine;
-using System.IO;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
-using System.Collections.Generic;
+namespace CMPM146.Spells {
+    public class SpellBuilder {
+        public Spell Build(SpellCaster owner) {
+            return new Spell(owner);
+        }
 
-
-public class SpellBuilder 
-{
-
-    public Spell Build(SpellCaster owner)
-    {
-        return new Spell(owner);
+        public SpellBuilder() { }
     }
-
-   
-    public SpellBuilder()
-    {        
-    }
-
 }

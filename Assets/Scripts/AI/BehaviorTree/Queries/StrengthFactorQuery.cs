@@ -1,24 +1,26 @@
-public class StrengthFactorQuery : BehaviorTree
-{
-    float min_strength_factor;
+using CMPM146.Core;
+using CMPM146.Enemies;
+using CMPM146.Movement;
+using UnityEngine;
 
-    public override Result Run()
-    {
-        var target = GameManager.Instance.GetClosestOtherEnemy(agent.gameObject);
-        if (((EnemyAttack)target.GetComponent<EnemyController>().GetAction("attack")).StrengthFactor >= min_strength_factor)
-        {
-            return Result.SUCCESS;
+
+namespace CMPM146.AI.BehaviorTree.Queries {
+    public class StrengthFactorQuery : BehaviorTree {
+        float _minStrengthFactor;
+
+        public override Result Run() {
+            GameObject target = GameManager.Instance.GetClosestOtherEnemy(Agent.gameObject);
+            if (((EnemyAttack)target.GetComponent<EnemyController>().GetAction("attack")).StrengthFactor
+             >= _minStrengthFactor) return Result.SUCCESS;
+            return Result.FAILURE;
         }
-        return Result.FAILURE;
-    }
 
-    public StrengthFactorQuery(float min_strength_factor) : base()
-    {
-        this.min_strength_factor = min_strength_factor;
-    }
+        public StrengthFactorQuery(float minStrengthFactor) : base() {
+            _minStrengthFactor = minStrengthFactor;
+        }
 
-    public override BehaviorTree Copy()
-    {
-        return new StrengthFactorQuery(min_strength_factor);
+        public override BehaviorTree Copy() {
+            return new StrengthFactorQuery(_minStrengthFactor);
+        }
     }
 }
