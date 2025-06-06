@@ -1,15 +1,22 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.Tilemaps;
 
 
+[assembly: InternalsVisibleTo("Assembly-CSharp-Editor")]
 namespace CMPM146.MapGenerator {
     public class Room : MonoBehaviour {
         public const int GRID_SIZE = 12;
         public Tilemap tiles;
-        public int weight;
+        [FormerlySerializedAs("weight"), SerializeField] internal int Weight;
 
+        internal int Width = 1;
+        internal int Height = 1;
+        internal bool[] Occupancy = new bool[1];
+        
         (int, int) GetSize() {
             return (tiles.cellBounds.max.x - tiles.cellBounds.min.x, tiles.cellBounds.max.y - tiles.cellBounds.min.y);
         }
@@ -19,6 +26,19 @@ namespace CMPM146.MapGenerator {
             return new Vector2Int((w + 1) / GRID_SIZE, (h + 1) / GRID_SIZE);
         }
 
+        public List<Vector2Int> GetOccupancy(Vector2Int? offset = null) {
+            offset ??= Vector2Int.zero;
+            List<Vector2Int> occupied = new();
+            for (int i = 0; i < Occupancy.Length; i++) {
+                int x = (i % Width) + offset.Value.x;
+                int y = (i / Width) + offset.Value.y;
+                if (Occupancy[i]) {
+                    occupied.Add(new Vector2Int(x, y));
+                }
+            }
+            return occupied;
+        }
+        
         public List<Vector2Int> GetGridCoordinates(Vector2Int offset) {
             List<Vector2Int> coordinates = new();
             (int width, int height) = GetSize();
@@ -69,6 +89,27 @@ namespace CMPM146.MapGenerator {
             Room newRoom = Instantiate(this, new Vector3(where.x * GRID_SIZE, where.y * GRID_SIZE),
                                        Quaternion.identity);
             return newRoom.gameObject;
+        }
+
+        void OnDrawGizmos() {
+            Vector3    transformPosition = gameObject.transform.position;
+            Vector2Int offset            = new((int)transformPosition.x, (int)transformPosition.y);
+            List<Door> doors             = GetDoors();
+
+            {
+                Gizmos.color = Color.red;
+                foreach (Vector3 n in doors.Select(door => door.GetLocalCoordinates()).Select(v => new Vector3(v.x + offset.x + 0.5f, v.y + offset.y + 0.5f, 0))) {
+                    Gizmos.DrawSphere(n, 0.5f);
+                }
+            }
+
+            // Will have to update this when we do non-rectangular rooms.
+            {
+                Gizmos.color   = Color.magenta;
+                Vector2Int _   = GetGridSize();
+                Vector3    dim = new(_.x * GRID_SIZE - 1, _.y * GRID_SIZE - 1);
+                Gizmos.DrawWireCube((dim * 0.5f) + transformPosition, new Vector3(dim.x, dim.y, 0));
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 
@@ -8,6 +9,16 @@ namespace CMPM146.MapGenerator {
             EAST,
             SOUTH,
             WEST
+        }
+
+        public static Direction GetMatchingDirection(Direction direction) {
+            return direction switch {
+                Direction.NORTH => Direction.SOUTH,
+                Direction.EAST  => Direction.WEST,
+                Direction.SOUTH => Direction.NORTH,
+                Direction.WEST  => Direction.EAST,
+                _               => throw new ArgumentOutOfRangeException(nameof(direction), direction, null)
+            };
         }
 
         Vector2Int _coordinates;
@@ -26,6 +37,8 @@ namespace CMPM146.MapGenerator {
             return new Vector2Int(_coordinates.x / Room.GRID_SIZE, _coordinates.y / Room.GRID_SIZE);
         }
 
+        public Vector3 GetLocalCoordinates() => new(_coordinates.x, _coordinates.y, 0);
+
         public Door GetMatching() {
             return _direction switch {
                 Direction.EAST  => new Door(_coordinates + new Vector2Int(2, 0), Direction.WEST),
@@ -41,15 +54,7 @@ namespace CMPM146.MapGenerator {
             return match._coordinates == other._coordinates && match._direction == other._direction;
         }
 
-        public Direction GetMatchingDirection() {
-            return _direction switch {
-                Direction.EAST  => Direction.WEST,
-                Direction.WEST  => Direction.EAST,
-                Direction.NORTH => Direction.SOUTH,
-                Direction.SOUTH => Direction.NORTH,
-                _               => Direction.NORTH
-            };
-        }
+        public Direction GetMatchingDirection() => GetMatchingDirection(_direction);
 
         public override string ToString() {
             return GetGridCoordinates() + " " + _direction;
