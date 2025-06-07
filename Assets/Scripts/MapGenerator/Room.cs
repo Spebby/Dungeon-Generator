@@ -38,7 +38,9 @@ namespace CMPM146.MapGenerator {
             }
             return occupied;
         }
-        
+
+        public Vector2Int GetPivotCoordinates() => new((int)transform.position.x / GRID_SIZE, (int)transform.position.y / GRID_SIZE);
+
         public List<Vector2Int> GetGridCoordinates(Vector2Int offset) {
             List<Vector2Int> coordinates = new();
             (int width, int height) = GetSize();
@@ -58,8 +60,18 @@ namespace CMPM146.MapGenerator {
             return tile.colliderType == Tile.ColliderType.None;
         }
 
-        public List<Door> GetDoors() {
-            return GetDoors(new Vector2Int(0, 0));
+        public List<Door> GetHallwaySideDoors(Vector2Int offset) {
+            List<Door> doors = new();
+            (int width, int height) = GetSize();
+            for (int x = 0; x < width; ++x) {
+                if (IsDoor(x, height - 1)) doors.Add(new Door(new Vector2Int(x, height - 1) + offset * GRID_SIZE, Door.Direction.NORTH));
+            }
+
+            for (int y = 0; y < height; ++y) {
+                if (IsDoor(width - 1, y)) doors.Add(new Door(new Vector2Int(width - 1, y) + offset * GRID_SIZE, Door.Direction.EAST));
+            }
+
+            return doors; 
         }
 
         public List<Door> GetDoors(Vector2Int offset) {
@@ -81,7 +93,7 @@ namespace CMPM146.MapGenerator {
         }
 
         public bool HasDoorOnSide(Door.Direction direction) {
-            List<Door> doors = GetDoors();
+            List<Door> doors = GetDoors(Vector2Int.zero);
             return doors.Any(d => d.GetDirection() == direction);
         }
 
@@ -94,11 +106,11 @@ namespace CMPM146.MapGenerator {
         void OnDrawGizmos() {
             Vector3    transformPosition = gameObject.transform.position;
             Vector2Int offset            = new((int)transformPosition.x, (int)transformPosition.y);
-            List<Door> doors             = GetDoors();
+            List<Door> doors             = GetDoors(offset);
 
             {
                 Gizmos.color = Color.red;
-                foreach (Vector3 n in doors.Select(door => door.GetLocalCoordinates()).Select(v => new Vector3(v.x + offset.x + 0.5f, v.y + offset.y + 0.5f, 0))) {
+                foreach (Vector3 n in doors.Select(door => door.GetLocalCoordinates()).Select(v => new Vector3(v.x + 0.5f, v.y + 0.5f, 0))) {
                     Gizmos.DrawSphere(n, 0.5f);
                 }
             }

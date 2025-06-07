@@ -3,7 +3,7 @@ using UnityEngine;
 
 
 namespace CMPM146.MapGenerator {
-    public class Door {
+    public struct Door {
         public enum Direction {
             NORTH,
             EAST,
@@ -40,12 +40,16 @@ namespace CMPM146.MapGenerator {
         public Vector3 GetLocalCoordinates() => new(_coordinates.x, _coordinates.y, 0);
 
         public Door GetMatching() {
+            int x = _coordinates.x;
+            int y = _coordinates.y;
+            // The +- 2 is b/c we have the padding of 1 unit for each room. Doors are guaranteed to touch that boundary
+            // so we need to bump it over to the "correct" spot on the other side of the boundary.
             return _direction switch {
-                Direction.EAST  => new Door(_coordinates + new Vector2Int(2, 0), Direction.WEST),
-                Direction.WEST  => new Door(_coordinates + new Vector2Int(-2, 0), Direction.EAST),
-                Direction.NORTH => new Door(_coordinates + new Vector2Int(0, 2), Direction.SOUTH),
-                Direction.SOUTH => new Door(_coordinates + new Vector2Int(0, -2), Direction.NORTH),
-                _               => null
+                Direction.EAST  => new Door(new Vector2Int(x + 2, y), Direction.WEST),
+                Direction.WEST  => new Door(new Vector2Int(x - 2, y), Direction.EAST),
+                Direction.NORTH => new Door(new Vector2Int(x, y + 2), Direction.SOUTH),
+                Direction.SOUTH => new Door(new Vector2Int(x, y - 2), Direction.NORTH),
+                _               => throw new Exception("Unknown direction!")
             };
         }
 
@@ -67,5 +71,10 @@ namespace CMPM146.MapGenerator {
         public bool IsHorizontal() {
             return _direction is Direction.EAST or Direction.WEST;
         }
+
+        public override bool Equals(object obj) =>
+            obj is Door other && _direction == other._direction && _coordinates == other._coordinates;
+
+        public override int GetHashCode() => HashCode.Combine(_direction, _coordinates);
     }
 }

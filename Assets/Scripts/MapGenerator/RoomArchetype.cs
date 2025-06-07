@@ -13,44 +13,55 @@ namespace CMPM146.MapGenerator {
         public int Height = 1;
         public bool[] Occupancy = {true};
 
-        public Room[] GetAllRooms() {
-            Room[] r = rooms.ToArray();
-            foreach (Room room in r) {
+        bool _initialized;
+        
+        void Init() {
+            if (_initialized) return;
+            foreach (Room room in rooms) {
                 room.Width = Width;
                 room.Height = Height;
                 room.Occupancy = Occupancy;
             }
-
-            return r;
+            _initialized = true;
+        }
+        
+        public Room[] GetAllRooms() {
+            Init();
+            return rooms.ToArray();
         }
         
         public Room Get(int i) {
             if (i >= rooms.Count) throw  new IndexOutOfRangeException();
+            Init();
             Room r = rooms[i];
             r.Width = Width;
             r.Height = Height;
             r.Occupancy = Occupancy;
             return r;
         }
-        
+
         public Room GetRandomRoom() {
-            int totalWeight = rooms.Sum(r => r.Weight);
-            if (totalWeight == 0) throw new InvalidOperationException("All room weights are zero.");
+            Init();
+            return GetRandomRoom(rooms);
+        }
 
-            int pick       = Random.Range(0, totalWeight);
-            int cumulative = 0;
+        public static Room GetRandomRoom(in List<Room> collection) {
+            int totalWeight = collection.Sum(room => room.Weight);
 
-            foreach (Room room in rooms) {
-                cumulative += room.Weight;
-                if (pick >= cumulative) continue;
-                
-                room.Weight    = Width;
-                room.Height    = Height;
-                room.Occupancy = Occupancy;
-                return room;
+            if (totalWeight == 0)
+                throw new InvalidOperationException("All room weights are zero.");
+
+            int pick  = Random.Range(0, totalWeight);
+            int accum = 0;
+
+            // ReSharper disable once ForCanBeConvertedToForeach
+            for (int i = 0; i < collection.Count; i++) {
+                Room room = collection[i];
+                accum += room.Weight;
+                if (pick < accum) return room;
             }
 
-            throw new Exception("Weighted selection failed unexpectedly.");
+            return collection[^1]; // fallback (shouldn’t happen)
         }
 
         public bool HasDoorOnSide(Door.Direction direction) {
