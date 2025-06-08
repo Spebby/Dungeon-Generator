@@ -1,22 +1,23 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Random = UnityEngine.Random;
 
 
 namespace CMPM146.MapGenerator {
-    public class MapGenerator : MonoBehaviour {
-        [Header ("Archetypes")]
-        public RoomArchetype[] archetypes;
+    public sealed class MapGenerator : MonoBehaviour {
+        [Header("Archetypes")] 
+        [SerializeField] string ResourceDirectory = "Rooms";
+        [SerializeField, Tooltip("Do not manually assign!")] RoomArchetype[] archetypes;
         
         [Header ("Generation Settings")]
-        public Hallway verticalHallway;
-        public Hallway horizontalHallway;
+        [SerializeField] Hallway verticalHallway;
+        [SerializeField] Hallway horizontalHallway;
 
-        public RoomArchetype startRooms;
+        [SerializeField] RoomArchetype startRooms;
         public Room target;
 
         public int MIN_SIZE = 5;
@@ -32,88 +33,144 @@ namespace CMPM146.MapGenerator {
         // and, say, a threshold of 100 iterations
         public int THRESHOLD;
 
+        [Header("Misc Settings")]
+        [SerializeField] bool useRandomSeed = true;
+        [SerializeField] int seed = 0;
+        System.Random _rng = new();
+        
         // keep the instantiated rooms and hallways here
         List<GameObject> _generatedObjects;
-        List<Room> _generatedRooms;
         int _iterations;
-        
+
+        readonly Dictionary<Door.Direction, Room[]> _roomsByDir = new();
+
         void Awake() {
-            archetypes = Resources.LoadAll<RoomArchetype>("Rooms");
+            archetypes = Resources.LoadAll<RoomArchetype>(ResourceDirectory);
             List<RoomArchetype> a = archetypes.ToList();
             a.Remove(startRooms);
             archetypes = a.ToArray();
-        }
-        
-        public void Generate() {
-            // dispose of game objects from previous generation process
-            foreach (GameObject go in _generatedObjects) {
-                Destroy(go);
+            // ^ this is a silly way of doing it but i dont really care
+            
+            
+            Door.Direction[] dirs = {
+                Door.Direction.NORTH,
+                Door.Direction.SOUTH,
+                Door.Direction.EAST,
+                Door.Direction.WEST
+            };
+            
+            foreach (Door.Direction dir in dirs) {
+                List<Room> valid = new();
+                foreach (RoomArchetype archetype in archetypes) {
+                    if (archetype.HasDoorOnSide(dir)) {
+                        valid.AddRange(archetype.GetAllRooms());
+                    }
+                }
+                _roomsByDir[dir] = valid.ToArray();
             }
+        }
 
+        public void Generate() {
+            // Mixing randoms here seems like bad practice but I don't think it matters that much.
+            if (useRandomSeed) seed = UnityEngine.Random.Range(0, int.MaxValue);
+            _rng = new System.Random(seed);
+            
+            // dispose of game objects from previous generation process
+            foreach (GameObject go in _generatedObjects) Destroy(go);
             _generatedObjects.Clear();
 
-            Room start = startRooms.GetRandomRoom();
+            Room start = startRooms.GetRandomRoom(_rng);
             // Markus's coordinate system can't handle anything outside Q1, this is a quick fix to that before I
             // eventually fix that coordinate system.
-            _generatedObjects.Add(start.Place(new Vector2Int(21, 21)));
-            List<Door>       doors    = start.GetDoors(new Vector2Int(21, 21));
-            List<Vector2Int> occupied = new() { new Vector2Int(21, 21) };
+            Vector2Int startOffset = new(21, 21);
+            _generatedObjects.Add(start.Place(startOffset));
+            
+            ReadOnlySpan<Vector2Int> occupancy = start.GetOccupancy(startOffset);
+            Vector2Int[] buf = ArrayPool<Vector2Int>.Shared.Rent(occupancy.Length);
+            occupancy.CopyTo(buf);
+            
+            ReadOnlySpan<Door> initDoors = start.GetDoors(startOffset);
+            Door[] doorBuf = ArrayPool<Door>.Shared.Rent(initDoors.Length);
+            initDoors.CopyTo(doorBuf.AsSpan(0, initDoors.Length));
+            using Slice<Door> doors = new (doorBuf, initDoors.Length);
+            using Slice<Vector2Int> occupied = new(buf, occupancy.Length);
+            
             _iterations = 0;
             bool result = GenerateWithBacktracking(occupied, doors, 1);
             if (!result) throw new Exception("Map Generation failed!");
-            PlaceHallways(_generatedRooms);
+            PlaceHallways();
         }
 
-        bool GenerateWithBacktracking(in List<Vector2Int> occupied, in List<Door> doors, int depth) {
-            if (_iterations > THRESHOLD) throw new Exception("Iteration limit exceeded");
-            _iterations++;
+        [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
+        bool GenerateWithBacktracking(in Slice<Vector2Int> occupancy, in Slice<Door> doors, int depth) {
+            if (_iterations++ > THRESHOLD) throw new Exception("Iteration limit exceeded");
             if (doors.Count == 0) return depth >= MIN_SIZE;
 
-            Door       door       = doors[Random.Range(0, doors.Count)];
-            Door       match      = door.GetMatching();
+            // pick an entry door
+            Door       entryDoor  = doors.Buffer[_rng.Next(0, doors.Count)];
+            Door       match   = entryDoor.GetMatching();
             Vector2Int offset     = match.GetGridCoordinates();
-            List<Room> validRooms = GetValidRooms(match.GetDirection());
-            
-            List<Door> newDoors = new(doors);
-            newDoors.RemoveSwapBack(door);
-
-            while (validRooms.Count > 0) {
-                Room hopeful = RoomArchetype.GetRandomRoom(validRooms);
-                validRooms.RemoveSwapBack(hopeful);
-                List<Vector2Int> occMap = hopeful.GetOccupancy(match.GetGridCoordinates());
-                if (!CanFit(occMap, occupied)) continue;
-                // TODO: the above code needs to be revised to check each door on the side we're trying to place.
-                // this isn't a problem for 1x1 but will need adjustments for nxm
-                
-                // Attempt to place the room
-                // Add new doors to the door list. Remove the door mirror.
-                // TODO... adapt this to handle the case where a 2x2 room w/ 2 exits on same cardinal are being is
-                // being tested. Need to make sure we test for both upper & lower door placement.
-                List<Door> plusDoors = hopeful.GetDoors(offset);
-                // Heuristic to avoid exploring bad seeds too deeply. We assume each door leads to a new room.
-                // This overestimates slightly, this doesn't account for doors that connect to the same space.
-                // (placed rooms) + (frontier) > MAX_SIZE -- No, there isn't an off-by one error. 
-                if ((depth + plusDoors.Count + newDoors.Count) > MAX_SIZE) continue;
-                
-                plusDoors.RemoveSwapBack(match);
-                newDoors.AddRange(plusDoors);
-                
-                List<Vector2Int> newOccupied = new(occupied);
-                newOccupied.AddRange(occMap);
-                
-                if (!GenerateWithBacktracking(newOccupied, newDoors, depth + 1)) continue;
-                // Then we're safe to place!
-                GameObject obj = hopeful.Place(match.GetGridCoordinates());
-                _generatedObjects.Add(obj);
-                _generatedRooms.Add(obj.GetComponent<Room>());
-                // TODO: revisit this such that we place at the *correct* door. Some sort of offset may be needed. 
-                break;
+            Room[] candidates     = GetValidRooms(match.GetDirection());
+            Span<int> weights     = stackalloc int[candidates.Length];
+            for (int i = 0; i < candidates.Length; i++) {
+                weights[i] = candidates[i].Weight;
             }
             
+            // This is a data structure that handles the unique weighted selection for us & keeps allocations low.
+            using WeightedBag<Room> bag = new(candidates, weights);
+            
+            // rent & fill baseDoors (not including the door we're trying)
+            Door[] baseBuf      = ArrayPool<Door>.Shared.Rent(doors.Count - 1);
+            int    baseCount    = 0;
+            for (int i = 0; i < doors.Count; ++i) {
+                Door d = doors.Buffer[i];
+                if (d == entryDoor) continue;
+                baseBuf[baseCount++] = d;
+            }
+
+            using Slice<Door> baseDoors = new(baseBuf, baseCount);
+
+            while (bag.TryNext(_rng, out Room hopeful)) {
+                ReadOnlySpan<Vector2Int> occMap = hopeful.GetOccupancy(match.GetGridCoordinates());
+                if (!CanFit(occMap, occupancy.Buffer.AsSpan(0, occupancy.Count))) continue;
+
+                if (depth + hopeful.GetDoorCount() + baseCount > MAX_SIZE) continue;
+                ReadOnlySpan<Door> plusDoors = hopeful.GetDoors(offset);
+
+                // rent & build the frontier slice
+                Door[] frontierBuf = ArrayPool<Door>.Shared.Rent(baseCount + plusDoors.Length - 1);
+                baseDoors.Buffer.AsSpan(0, baseCount).CopyTo(frontierBuf);
+                // Remove the matching door
+                int write = baseCount;
+                for (int i = 0; i < plusDoors.Length; i++) {
+                    Door t = plusDoors[i];
+                    if (t == match) continue;
+                    frontierBuf[write++] = t;
+                }
+
+                using Slice<Door> frontier = new(frontierBuf, write);
+
+                // rent & build the merged occupancy slice
+                int          occLen = occupancy.Count + occMap.Length;
+                Vector2Int[] occBuf = ArrayPool<Vector2Int>.Shared.Rent(occLen);
+                Array.Copy(occupancy.Buffer, 0, occBuf, 0, occupancy.Count);
+                occMap.CopyTo(occBuf.AsSpan(occupancy.Count, occMap.Length));
+                using Slice<Vector2Int> occSlice = new(occBuf, occLen);
+
+                // recurse
+                if (!GenerateWithBacktracking(occSlice, frontier, depth + 1)) continue;
+
+                // we succeeded—place the room and return
+                GameObject obj = hopeful.Place(match.GetGridCoordinates());
+                _generatedObjects.Add(obj);
+                return true;
+            }
+
             return false;
         }
 
-        void PlaceHallways(in List<Room> rooms) {
+        void PlaceHallways() {
+            List<Room> rooms = _generatedObjects.Select(go => go.GetComponent<Room>()).ToList();
             List<Door> doors = new();
             foreach (Room room in rooms) {
                 doors.AddRange(room.GetHallwaySideDoors(room.GetPivotCoordinates()));
@@ -126,20 +183,14 @@ namespace CMPM146.MapGenerator {
             }
             _generatedObjects.AddRange(hallways);
         }
-        
-        List<Room> GetValidRooms(in Door.Direction direction) {
-            List<Room> valid = new();
-            foreach (RoomArchetype archetype in archetypes) {
-                if (archetype.HasDoorOnSide(direction)) {
-                    valid.AddRange(archetype.GetAllRooms());
-                }
-            }
-            return valid;
-        }
 
-        static bool CanFit(in List<Vector2Int> occMap, in List<Vector2Int> occupied) {
+        Room[] GetValidRooms(in Door.Direction direction) => _roomsByDir[direction];
+        
+        static bool CanFit(in ReadOnlySpan<Vector2Int> occMap, in ReadOnlySpan<Vector2Int> occupied) {
             foreach (Vector2Int occ in occMap) {
-                if (occupied.Contains(occ)) return false;
+                foreach (Vector2Int t in occupied) {
+                    if (t == occ) return false;
+                }
             }
 
             return true;

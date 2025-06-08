@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 
+[assembly: InternalsVisibleTo("Assembly-CSharp-Editor")]
 namespace CMPM146.MapGenerator {
     [CreateAssetMenu(fileName = "RoomArchetype", menuName = "MapGenerator/RoomArchetype")]
     public class RoomArchetype : ScriptableObject {
@@ -40,18 +42,16 @@ namespace CMPM146.MapGenerator {
             return r;
         }
 
-        public Room GetRandomRoom() {
+        public Room GetRandomRoom(in System.Random rng) {
             Init();
-            return GetRandomRoom(rooms);
+            return GetRandomRoom(rooms, rng);
         }
 
-        public static Room GetRandomRoom(in List<Room> collection) {
+        public static Room GetRandomRoom(in List<Room> collection, in System.Random rng) {
             int totalWeight = collection.Sum(room => room.Weight);
+            if (totalWeight == 0) throw new InvalidOperationException("All room weights are zero.");
 
-            if (totalWeight == 0)
-                throw new InvalidOperationException("All room weights are zero.");
-
-            int pick  = Random.Range(0, totalWeight);
+            int pick  = rng.Next(totalWeight);
             int accum = 0;
 
             // ReSharper disable once ForCanBeConvertedToForeach
@@ -66,6 +66,7 @@ namespace CMPM146.MapGenerator {
 
         public bool HasDoorOnSide(Door.Direction direction) {
             if (rooms.Count == 0) throw new NullReferenceException("Room Archetype has no rooms defined!");
+            Init();
             Room r = rooms[0];
             return r.HasDoorOnSide(direction);
         }

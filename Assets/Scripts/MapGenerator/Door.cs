@@ -3,7 +3,7 @@ using UnityEngine;
 
 
 namespace CMPM146.MapGenerator {
-    public struct Door {
+    public struct Door : IEquatable<Door> {
         public enum Direction {
             NORTH,
             EAST,
@@ -21,12 +21,12 @@ namespace CMPM146.MapGenerator {
             };
         }
 
-        Vector2Int _coordinates;
+        internal Vector2Int Coordinates;
         readonly Direction _direction;
 
         public Door(Vector2Int coordinates, Direction direction) {
-            _coordinates = coordinates;
-            _direction   = direction;
+            Coordinates = coordinates;
+            _direction  = direction;
         }
 
         public Direction GetDirection() {
@@ -34,14 +34,14 @@ namespace CMPM146.MapGenerator {
         }
 
         public Vector2Int GetGridCoordinates() {
-            return new Vector2Int(_coordinates.x / Room.GRID_SIZE, _coordinates.y / Room.GRID_SIZE);
+            return new Vector2Int(Coordinates.x / Room.GRID_SIZE, Coordinates.y / Room.GRID_SIZE);
         }
 
-        public Vector3 GetLocalCoordinates() => new(_coordinates.x, _coordinates.y, 0);
+        public readonly Vector3 GetLocalCoordinates() => new(Coordinates.x, Coordinates.y, 0);
 
         public Door GetMatching() {
-            int x = _coordinates.x;
-            int y = _coordinates.y;
+            int x = Coordinates.x;
+            int y = Coordinates.y;
             // The +- 2 is b/c we have the padding of 1 unit for each room. Doors are guaranteed to touch that boundary
             // so we need to bump it over to the "correct" spot on the other side of the boundary.
             return _direction switch {
@@ -55,7 +55,7 @@ namespace CMPM146.MapGenerator {
 
         public bool IsMatching(Door other) {
             Door match = GetMatching();
-            return match._coordinates == other._coordinates && match._direction == other._direction;
+            return match.Coordinates == other.Coordinates && match._direction == other._direction;
         }
 
         public Direction GetMatchingDirection() => GetMatchingDirection(_direction);
@@ -72,9 +72,12 @@ namespace CMPM146.MapGenerator {
             return _direction is Direction.EAST or Direction.WEST;
         }
 
-        public override bool Equals(object obj) =>
-            obj is Door other && _direction == other._direction && _coordinates == other._coordinates;
-
-        public override int GetHashCode() => HashCode.Combine(_direction, _coordinates);
+        // Mostest correct would also use door direction, but coordinates is the only neccesary information here.
+        public override bool Equals(object obj) => obj is Door other && Coordinates == other.Coordinates;
+        public bool Equals(Door other) => Coordinates.Equals(other.Coordinates);
+        public static bool operator ==(Door left, Door right) => left.Coordinates == right.Coordinates;
+        public static bool operator !=(Door left, Door right) => left.Coordinates != right.Coordinates;
+        
+        public override int GetHashCode() => HashCode.Combine(_direction, Coordinates);
     }
 }

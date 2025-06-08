@@ -375,6 +375,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a66ce9ff93b96de4a8da2ef309874395, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ResourceDirectory: Rooms
   archetypes: []
   verticalHallway: {fileID: 5255264242106100983, guid: 23dab4baa5c4e3d4f9ab82b747040843, type: 3}
   horizontalHallway: {fileID: 1508018506499616265, guid: da4748670254bcd48a9c066ed148bec1, type: 3}
@@ -383,6 +384,8 @@ MonoBehaviour:
   MIN_SIZE: 5
   MAX_SIZE: 10
   THRESHOLD: 1000
+  useRandomSeed: 1
+  seed: 0
 --- !u!4 &1893224133
 Transform:
   m_ObjectHideFlags: 0
@@ -392,7 +395,7 @@ Transform:
   m_GameObject: {fileID: 1893224131}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.3206248, y: 1.2501181, z: 0.9163966}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

@@ -14,8 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rooms:
   - {fileID: 7328084662367532751, guid: fbb7b04d19af1aa4aad44cc45b15c4d1, type: 3}
+  - {fileID: 7328084662367532751, guid: 39f65b827e449dc5e9aabb26021bef9b, type: 3}
   - {fileID: 7328084662367532751, guid: cb171fcbb6d3afb3c92e1b4daff0d3e8, type: 3}
   - {fileID: 7328084662367532751, guid: e8888888b3b3fd8ac9d0085acc9d3ade, type: 3}
+  - {fileID: 7328084662367532751, guid: 4e6f4e417bf1c898f857b79d47ed947a, type: 3}
   Width: 1
   Height: 1
   Occupancy: 01
