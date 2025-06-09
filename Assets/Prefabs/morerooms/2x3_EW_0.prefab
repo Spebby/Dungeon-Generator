@@ -8232,7 +8232,7 @@ GameObject:
   - component: {fileID: 1233919373670568647}
   - component: {fileID: 7328084662367532751}
   m_Layer: 0
-  m_Name: LargeLadder
+  m_Name: 2x3_EW_0
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8268,9 +8268,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tiles: {fileID: 5825326236042427473}
   Weight: 1
-  Width: 2
-  Height: 3
-  Occupancy: 010101010101
 --- !u!1 &7823287339699880435
 GameObject:
   m_ObjectHideFlags: 0

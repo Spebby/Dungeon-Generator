@@ -1427,7 +1427,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tiles: {fileID: 5825326236042427473}
-  Weight: 7
+  Weight: 8
 --- !u!1 &7823287339699880435
 GameObject:
   m_ObjectHideFlags: 0

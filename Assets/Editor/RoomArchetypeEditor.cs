@@ -6,17 +6,20 @@ using UnityEngine;
 
 namespace CMPM146.Editor {
     [CustomEditor(typeof(RoomArchetype))]
-    public class RoomEditor : UnityEditor.Editor {
+    public class RoomArchetypeEditor : UnityEditor.Editor {
         SerializedProperty _roomsProp;
+        SerializedProperty _doorsProp;
+        SerializedProperty _weightProp;
         SerializedProperty _widthProp;
         SerializedProperty _heightProp;
-        SerializedProperty _occupancyProp;
 
         void OnEnable() {
             _roomsProp     = serializedObject.FindProperty("rooms");
+            _doorsProp     = serializedObject.FindProperty("doors");
+            
+            _weightProp    = serializedObject.FindProperty("Weight");
             _widthProp     = serializedObject.FindProperty("Width");
             _heightProp    = serializedObject.FindProperty("Height");
-            _occupancyProp = serializedObject.FindProperty("Occupancy");
         }
        
         public override void OnInspectorGUI() {
@@ -25,6 +28,9 @@ namespace CMPM146.Editor {
 
             EditorGUILayout.LabelField("Room Relations", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(_roomsProp, true);
+            EditorGUILayout.PropertyField(_doorsProp, true);
+            
+            EditorGUILayout.PropertyField(_weightProp);
             
             EditorGUILayout.LabelField("Room Grid", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(_widthProp);

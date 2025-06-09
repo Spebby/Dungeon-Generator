@@ -208,7 +208,7 @@ Transform:
   m_GameObject: {fileID: 939739942}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 19.1, y: -8.5, z: -10}
+  m_LocalPosition: {x: 0, y: 0, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -379,11 +379,13 @@ MonoBehaviour:
   archetypes: []
   verticalHallway: {fileID: 5255264242106100983, guid: 23dab4baa5c4e3d4f9ab82b747040843, type: 3}
   horizontalHallway: {fileID: 1508018506499616265, guid: da4748670254bcd48a9c066ed148bec1, type: 3}
-  startRooms: {fileID: 11400000, guid: c956596751eea01f5a57064fb484ea89, type: 2}
-  target: {fileID: 7328084662367532751, guid: 0b2779608081820479b40f34b30be409, type: 3}
-  MIN_SIZE: 5
-  MAX_SIZE: 10
-  THRESHOLD: 1000
+  startRooms: {fileID: 11400000, guid: b94403de0b969abf38e0fc740db2d0a3, type: 2}
+  target: {fileID: 11400000, guid: 4037ade5abfdcf33796fa246d07fd052, type: 2}
+  MIN_SIZE: 15
+  MAX_SIZE: 20
+  DIMENSION_DIFF: 2
+  THRESHOLD: 20000
+  RETRY: 1
   useRandomSeed: 1
   seed: 0
 --- !u!4 &1893224133

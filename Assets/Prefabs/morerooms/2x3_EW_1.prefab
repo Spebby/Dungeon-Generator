@@ -8232,7 +8232,7 @@ GameObject:
   - component: {fileID: 1233919373670568647}
   - component: {fileID: 7328084662367532751}
   m_Layer: 0
-  m_Name: LargeRoom
+  m_Name: 2x3_EW_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

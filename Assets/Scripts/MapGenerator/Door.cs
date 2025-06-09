@@ -1,8 +1,11 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 
+// My original version of this class used bit packing :D
 namespace CMPM146.MapGenerator {
+    [Serializable]
     public struct Door : IEquatable<Door> {
         public enum Direction {
             NORTH,
@@ -10,74 +13,98 @@ namespace CMPM146.MapGenerator {
             SOUTH,
             WEST
         }
+        
+        public static Direction[] Cardinals = {
+            Direction.NORTH,
+            Direction.SOUTH,
+            Direction.EAST,
+            Direction.WEST
+        };
 
+        public static Vector2Int DirToVec(Direction direction) {
+            return direction switch {
+                Direction.NORTH => Vector2Int.up,
+                Direction.SOUTH => Vector2Int.down,
+                Direction.EAST  => Vector2Int.right,
+                Direction.WEST  => Vector2Int.left,
+                _               => throw new ArgumentOutOfRangeException(nameof(direction), direction, null)
+            };
+        }
+        
         public static Direction GetMatchingDirection(Direction direction) {
             return direction switch {
                 Direction.NORTH => Direction.SOUTH,
-                Direction.EAST  => Direction.WEST,
                 Direction.SOUTH => Direction.NORTH,
+                Direction.EAST  => Direction.WEST,
                 Direction.WEST  => Direction.EAST,
                 _               => throw new ArgumentOutOfRangeException(nameof(direction), direction, null)
             };
         }
 
-        internal Vector2Int Coordinates;
-        readonly Direction _direction;
-
-        public Door(Vector2Int coordinates, Direction direction) {
-            Coordinates = coordinates;
-            _direction  = direction;
+        [FormerlySerializedAs("Coordinates"),SerializeField] internal Vector2Int GridCoordinates;
+        [SerializeField] Direction direction;
+        [HideInInspector, SerializeField] internal Vector2Int WorldCoordinates;
+        
+        public Door(Vector2Int gridCoordinates, Direction direction) {
+            GridCoordinates = gridCoordinates;
+            this.direction  = direction;
+            WorldCoordinates = GetWorldCoordinates(gridCoordinates, direction);
         }
 
-        public Direction GetDirection() {
-            return _direction;
+        public readonly Direction GetDirection() => direction;
+
+        public Vector2Int GetGridCoordinates() => new(GridCoordinates.x, GridCoordinates.y);
+
+        internal static Vector2Int GetWorldCoordinates(Vector2Int gridCoordinates, Direction direction) {
+            int tX = gridCoordinates.x * Room.GRID_SIZE;
+            int tY = gridCoordinates.y * Room.GRID_SIZE;
+            return direction switch {
+                Direction.NORTH => new Vector2Int(tX + 5, tY + 10),
+                Direction.SOUTH => new Vector2Int(tX + 5, tY),
+                Direction.EAST  => new Vector2Int(tX + 10, tY + 5),
+                Direction.WEST  => new Vector2Int(tX, tY + 5),
+                _               => throw new ArgumentOutOfRangeException(nameof(direction), direction, null)
+            };
         }
 
-        public Vector2Int GetGridCoordinates() {
-            return new Vector2Int(Coordinates.x / Room.GRID_SIZE, Coordinates.y / Room.GRID_SIZE);
-        }
-
-        public readonly Vector3 GetLocalCoordinates() => new(Coordinates.x, Coordinates.y, 0);
+        public readonly Vector3 GetLocalCoordinates() => new(WorldCoordinates.x, WorldCoordinates.y, 0);
 
         public Door GetMatching() {
-            int x = Coordinates.x;
-            int y = Coordinates.y;
+            int x = GridCoordinates.x, y = GridCoordinates.y;
             // The +- 2 is b/c we have the padding of 1 unit for each room. Doors are guaranteed to touch that boundary
             // so we need to bump it over to the "correct" spot on the other side of the boundary.
-            return _direction switch {
-                Direction.EAST  => new Door(new Vector2Int(x + 2, y), Direction.WEST),
-                Direction.WEST  => new Door(new Vector2Int(x - 2, y), Direction.EAST),
-                Direction.NORTH => new Door(new Vector2Int(x, y + 2), Direction.SOUTH),
-                Direction.SOUTH => new Door(new Vector2Int(x, y - 2), Direction.NORTH),
+            return direction switch {
+                Direction.EAST  => new Door(new Vector2Int(x + 1, y), Direction.WEST),
+                Direction.WEST  => new Door(new Vector2Int(x - 1, y), Direction.EAST),
+                Direction.NORTH => new Door(new Vector2Int(x, y + 1), Direction.SOUTH),
+                Direction.SOUTH => new Door(new Vector2Int(x, y - 1), Direction.NORTH),
                 _               => throw new Exception("Unknown direction!")
             };
         }
 
         public bool IsMatching(Door other) {
             Door match = GetMatching();
-            return match.Coordinates == other.Coordinates && match._direction == other._direction;
+            return match.GridCoordinates == other.GridCoordinates && match.direction == other.direction;
         }
 
-        public Direction GetMatchingDirection() => GetMatchingDirection(_direction);
+        public Direction GetMatchingDirection() => GetMatchingDirection(direction);
 
-        public override string ToString() {
-            return GetGridCoordinates() + " " + _direction;
-        }
+        public override string ToString() => GetGridCoordinates() + " " + direction;
 
         public bool IsVertical() {
-            return _direction is Direction.NORTH or Direction.SOUTH;
+            return direction is Direction.NORTH or Direction.SOUTH;
         }
 
         public bool IsHorizontal() {
-            return _direction is Direction.EAST or Direction.WEST;
+            return direction is Direction.EAST or Direction.WEST;
         }
 
-        // Mostest correct would also use door direction, but coordinates is the only neccesary information here.
-        public override bool Equals(object obj) => obj is Door other && Coordinates == other.Coordinates;
-        public bool Equals(Door other) => Coordinates.Equals(other.Coordinates);
-        public static bool operator ==(Door left, Door right) => left.Coordinates == right.Coordinates;
-        public static bool operator !=(Door left, Door right) => left.Coordinates != right.Coordinates;
+        // Mostest correct would also use door direction, but coordinates is the only necessary information here.
+        public override bool Equals(object obj) => obj is Door other && WorldCoordinates == other.WorldCoordinates;
+        public bool Equals(Door other) => WorldCoordinates.Equals(other.WorldCoordinates);
+        public static bool operator ==(Door left, Door right) => left.WorldCoordinates == right.WorldCoordinates;
+        public static bool operator !=(Door left, Door right) => left.WorldCoordinates != right.WorldCoordinates;
         
-        public override int GetHashCode() => HashCode.Combine(_direction, Coordinates);
+        public override int GetHashCode() => HashCode.Combine(direction, GridCoordinates);
     }
 }
