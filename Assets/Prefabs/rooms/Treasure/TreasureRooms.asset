@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eecea67b32644fffaf93a0d3809df7f9, type: 3}
+  m_Name: TreasureRooms
+  m_EditorClassIdentifier: 
+  rooms:
+  - {fileID: 11400000, guid: 724c7227555e34e66a26adb8cfb2ade6, type: 2}
+  - {fileID: 11400000, guid: 47dcc684c9a5acbff8ea4c137624c938, type: 2}
+  - {fileID: 11400000, guid: 61454d7a5d81e4fb7b44fbf226db5e22, type: 2}
+  - {fileID: 11400000, guid: 5a6fcee4705421ebb981421064537932, type: 2}

@@ -13,20 +13,22 @@ namespace CMPM146.MapGenerator {
         [Header("Archetypes")] 
         [SerializeField] string ResourceDirectory = "Rooms";
         [SerializeField, Tooltip("Do not manually assign!")] RoomArchetype[] archetypes;
-        
-        [Header ("Generation Settings")]
-        [SerializeField] Hallway verticalHallway;
-        [SerializeField] Hallway horizontalHallway;
 
+        [Header ("Generation Settings")]
         [SerializeField] RoomCollection startRooms;
         [SerializeField] RoomCollection target;
+        [SerializeField] RoomCollection treasureRooms;
 
-        public int MIN_SIZE = 5;
+        [SerializeField] Hallway verticalHallway;
+        [SerializeField] Hallway horizontalHallway;
         
-        // Constraint: How big should the dungeon be at most
-        // this will limit the run time (~10 is a good value 
-        // during development, later you'll want to set it to 
-        // something a bit higher, like 25-30)
+        // This isn't ideal. It would be nice if we could simply define rules in some sort of config file or
+        // a SO and then the map would evaluate the rules there--we could simply just plug in new rules as we like.
+        // For endrooms a priority system would be needed.
+        [SerializeField, Range(0, 1f)] float TargetRoomDistance   = 1f;
+        [SerializeField, Range(0, 1f)] float TreasureRoomDistance = 0.5f;
+        
+        public int MIN_SIZE = 5;
         public int MAX_SIZE;
 
         public int DIMENSION_DIFF = 2;
@@ -38,7 +40,7 @@ namespace CMPM146.MapGenerator {
 
         [Tooltip("Should the generator try a different seed if the initial attempt fails?")] public bool RETRY;
 
-        [Header("Misc Settings")]
+        [Header("Seeds")]
         [SerializeField] bool useRandomSeed = true;
         [SerializeField] int seed;
         System.Random _rng = new();
@@ -51,6 +53,9 @@ namespace CMPM146.MapGenerator {
         readonly Dictionary<Door.Direction, RoomArchetype[]> _roomsByDir = new();
 
         static readonly Vector2Int STARTING_POS = Vector2Int.zero;
+
+        int _failCount;
+        const int FAILSAFE = 100;
         
         void Awake() {
             archetypes = Resources.LoadAll<RoomArchetype>(ResourceDirectory);
@@ -61,6 +66,8 @@ namespace CMPM146.MapGenerator {
             foreach (Door.Direction dir in Door.Cardinals) {
                 _roomsByDir[dir] = archetypes.Where(archetype => archetype.HasDoorOnSide(dir)).ToArray();
             }
+
+            _failCount = 0;
         }
 
         public void Generate() {
@@ -89,8 +96,8 @@ namespace CMPM146.MapGenerator {
             ReadOnlySpan<Door> initDoors = start.GetDoors(STARTING_POS);
             Door[] doorBuf = ArrayPool<Door>.Shared.Rent(initDoors.Length);
             initDoors.CopyTo(doorBuf.AsSpan(0, initDoors.Length));
-            using Slice<Door> doors = new (doorBuf, initDoors.Length);
-            using Slice<Vector2Int> occupied = new(buf, occupancy.Length);
+            using RentBuffer<Door> doors = new (doorBuf, initDoors.Length);
+            using RentBuffer<Vector2Int> occupied = new(buf, occupancy.Length);
             
             _iterations = 0;
             bool result;
@@ -102,99 +109,94 @@ namespace CMPM146.MapGenerator {
                 int orgSeed = seed;
                 seed = _rng.Next(int.MaxValue);
                 Debug.Log($"Seed {orgSeed} failed. Trying {seed}");
+                _failCount++;
+                if (_failCount == FAILSAFE) throw new Exception("Fail count exceeded.");
                 Generate();
                 seed = orgSeed;
                 return;
-            }
+            } // This is gross but I can't think of anything better rn
             
             if (!result && !RETRY) throw new Exception($"Map Generation failed after {_iterations} iterations!");
-            
             FinaliseMap();
+            _failCount = 0;
         }
 
         [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
-        bool GenerateWithBacktracking(in Slice<Vector2Int> occupancy, in Slice<Door> doors, int depth) {
+        bool GenerateWithBacktracking(in RentBuffer<Vector2Int> occupancy, in RentBuffer<Door> doors, int depth) {
             if (_iterations++ > THRESHOLD) throw new Exception("Iteration limit exceeded");
-            if (doors.Count == 0) {
-                if (depth < MIN_SIZE) return false;
-                // calculate width and height of map
-                int minX = occupancy.Buffer[0].x;
-                int maxX = occupancy.Buffer[0].x;
-                int minY = occupancy.Buffer[0].y;
-                int maxY = occupancy.Buffer[0].y;
-
-                for (int i = 1; i < occupancy.Count; i++) {
-                    Vector2Int t         = occupancy.Buffer[i];
-                    if (t.x < minX) minX = t.x;
-                    if (t.x > maxX) maxX = t.x;
-                    if (t.y < minY) minY = t.y;
-                    if (t.y > maxY) maxY = t.y;
-                }
-
-                int  width  = maxX - minX + 1;
-                int  height = maxY - minY + 1;
-                if (DIMENSION_DIFF < Math.Abs(width - height)) return false;
-
-                // There is a visual bug here, where if Target replaces a 2x1 hallway, then it looks like
-                // this check failed, even though it did succeed.
-                // NOTE: I need to double check if this actually fixed it, but I made the BFS take into account the
-                // "desired size" of the room when trying to find the farthest. Should leave non-1x1s alone.
-                return true;
-            }
+            int doorCount = doors.Count;
+            if (doorCount == 0) return ConstraintsCheck(occupancy, depth);
 
             // pick an entry door
-            Door            entryDoor  = doors.Buffer[_rng.Next(0, doors.Count)];
-            Door            match      = entryDoor.GetMatching();
-            Vector2Int      offset     = match.GetGridCoordinates();
+            ref readonly Door entryDoor = ref doors.Buffer[_rng.Next(0, doorCount)];
+            Door              match     = entryDoor.GetMatching();
+            Vector2Int        offset    = match.GetGridCoordinates();
+            
+            // rent & fill baseDoors (not including the door we're trying)
+            Door[] baseBuf   = ArrayPool<Door>.Shared.Rent(doorCount - 1);
+            int    baseCount = 0;
+            for (int i = 0; i < doorCount; ++i) {
+                Door d = doors.Buffer[i];
+                if (d == entryDoor) continue;
+                baseBuf[baseCount++] = d;
+            }
+            using RentBuffer<Door> baseDoors = new(baseBuf, baseCount);
+            
             RoomArchetype[] candidates = GetValidRooms(match.GetDirection());
             Span<int>       weights    = stackalloc int[candidates.Length];
             for (int i = 0; i < candidates.Length; i++) {
                 weights[i] = candidates[i].Weight;
             }
-            
             // This is a data structure that handles the unique weighted selection for us & keeps allocations low.
             using WeightedBag<RoomArchetype> bag = new(candidates, weights);
-            
-            // rent & fill baseDoors (not including the door we're trying)
-            Door[] baseBuf      = ArrayPool<Door>.Shared.Rent(doors.Count - 1);
-            int    baseCount    = 0;
-            for (int i = 0; i < doors.Count; ++i) {
-                Door d = doors.Buffer[i];
-                if (d == entryDoor) continue;
-                baseBuf[baseCount++] = d;
-            }
-
-            using Slice<Door> baseDoors = new(baseBuf, baseCount);
 
             while (bag.TryNext(_rng, out RoomArchetype hopeful)) {
-                ReadOnlySpan<Vector2Int> occMap = hopeful.GetOccupancy(offset);
-                if (!CanFit(occMap, occupancy.Buffer.AsSpan(0, occupancy.Count))) continue;
+                ReadOnlySpan<Vector2Int> occMap         = hopeful.GetOccupancy(offset);
+                int                      occupancyCount = occupancy.Count;
+                ReadOnlySpan<Vector2Int> baseOccupancy  = occupancy.Buffer.AsSpan(0, occupancyCount);
+                if (!CanFit(occMap, baseOccupancy)) continue;
 
-                if (depth + hopeful.GetDoorCount() + baseCount > MAX_SIZE) continue;
-                ReadOnlySpan<Door> plusDoors = hopeful.GetDoors(offset);
+                int plusCount = hopeful.GetDoorCount();
+                if (depth + plusCount + baseCount > MAX_SIZE) continue;
 
                 // rent & build the frontier slice
-                Door[] frontierBuf = ArrayPool<Door>.Shared.Rent(baseCount + plusDoors.Length - 1);
+                Door[] frontierBuf = ArrayPool<Door>.Shared.Rent(baseCount + plusCount - 1);
                 baseDoors.Buffer.AsSpan(0, baseCount).CopyTo(frontierBuf);
                 // Remove the matching door
                 int write = baseCount;
-                for (int i = 0; i < plusDoors.Length; i++) {
-                    Door t = plusDoors[i];
-                    if (t == match) continue;
-                    frontierBuf[write++] = t;
-                }
+                // This code is intended to remove doors who match the new room's doors.
+                // If we don't do this filter step, then all paths that branch out will never reconnect.
+                // Currently, this isn't working as intended. Investigate at some point.
+                ReadOnlySpan<Door> plusDoors = hopeful.GetDoors(offset);
+                for (int i = 0; i < plusCount; i++) {
+                    Door plus = plusDoors[i];
+                    if (plus == match) continue;
+                    /* // This block doesn't currently work correctly, it's just wasted compute.
+                    Door mirror = plus.GetMatching();
+                    bool replaced = false;
+                    for (int j = 0; j < baseCount; ++j) {
+                        if (mirror != frontierBuf[j]) continue;
+                        frontierBuf[j] = plus;
+                        replaced  = true;
+                        break;
+                    }
 
-                using Slice<Door> frontier = new(frontierBuf, write);
+                    if (!replaced) */
+                    frontierBuf[write++] = plus;
+                }
+                
+                using RentBuffer<Door> frontier = new(frontierBuf, write);
 
                 // rent & build the merged occupancy slice
-                int          occLen = occupancy.Count + occMap.Length;
-                Vector2Int[] occBuf = ArrayPool<Vector2Int>.Shared.Rent(occLen);
-                Array.Copy(occupancy.Buffer, 0, occBuf, 0, occupancy.Count);
-                occMap.CopyTo(occBuf.AsSpan(occupancy.Count, occMap.Length));
-                using Slice<Vector2Int> occSlice = new(occBuf, occLen);
-
+                int              occLen  = occupancyCount + occMap.Length;
+                Vector2Int[]     occBuf  = ArrayPool<Vector2Int>.Shared.Rent(occLen);
+                Span<Vector2Int> occSpan = occBuf.AsSpan(0, occLen);
+                baseOccupancy.CopyTo(occSpan);
+                occMap.CopyTo(occSpan.Slice(occupancyCount));
+                using RentBuffer<Vector2Int> occRentBuffer = new(occBuf, occLen);
+                
                 // recurse
-                if (!GenerateWithBacktracking(occSlice, frontier, depth + 1)) continue;
+                if (!GenerateWithBacktracking(occRentBuffer, frontier, depth + 1)) continue;
 
                 // Define room relations here for later.
                 ReadOnlySpan<Door> temp = hopeful.GetDoors(offset);
@@ -217,22 +219,44 @@ namespace CMPM146.MapGenerator {
             return false;
         }
 
+        bool ConstraintsCheck(RentBuffer<Vector2Int> occupancy, int depth) {
+            if (depth < MIN_SIZE) return false;
+            // calculate width and height of map
+            int minX = occupancy.Buffer[0].x;
+            int maxX = occupancy.Buffer[0].x;
+            int minY = occupancy.Buffer[0].y;
+            int maxY = occupancy.Buffer[0].y;
+
+            for (int i = 1; i < occupancy.Count; i++) {
+                Vector2Int t         = occupancy.Buffer[i];
+                if (t.x < minX) minX = t.x;
+                if (t.x > maxX) maxX = t.x;
+                if (t.y < minY) minY = t.y;
+                if (t.y > maxY) maxY = t.y;
+            }
+
+            int width  = maxX - minX + 1;
+            int height = maxY - minY + 1;
+            if (DIMENSION_DIFF < Math.Abs(width - height)) return false;
+
+            // There is a visual bug here, where if Target replaces a 2x1 hallway, then it looks like
+            // this check failed, even though it did succeed.
+            // NOTE: I need to double-check if this actually fixed it, but I made the BFS take into account the
+            // "desired size" of the room when trying to find the farthest. Should leave non-1x1s alone.
+            return true;
+        }
+        
         void FinaliseMap() {
             List<Door>                       doors = new();
             HashSet<RoomNode> nodes = new(_roomGraph.Values);
             // Find adequate position for target.
             // Run BFS and find the longest path to a deadened from start, and the node w/ appropriate target.
-			(RoomNode node, int distance) farthest = RoomNode.GetFarthestRoom(_roomGraph[STARTING_POS], 1);
+            List<RoomNode> endrooms = RoomNode.GetEndRooms(_roomGraph[STARTING_POS]);
 
-			// Dead-ends must have a single door, so fetch its direction
-			ReadOnlySpan<Door> farthestDoors = farthest.node.Archetype.GetDoors(Vector2Int.zero);
-			if (farthestDoors.Length != 1) {
-				Debug.LogWarning($"Expected dead-end room to have exactly 1 door, but found {farthestDoors.Length}.");
-			}
-
-			// Replace the archetype at the farthest node
-			Door.Direction exitDir  = farthestDoors[0].GetDirection();
-			farthest.node.Archetype = target.GetRandomRoomForDirection(_rng, exitDir);
+            ReplaceRoom(endrooms[Mathf.RoundToInt(TargetRoomDistance * (endrooms.Count - 1))], target);
+            if (CanSpawnTreasureRoom() && endrooms.Count > 1) {
+                ReplaceRoom(endrooms[Mathf.RoundToInt(TreasureRoomDistance * (endrooms.Count - 1))], treasureRooms);
+            }
             
             // Instantiate everything
             foreach (RoomNode node in nodes) {
@@ -250,6 +274,20 @@ namespace CMPM146.MapGenerator {
                 hallways[i] = door.IsHorizontal() ? horizontalHallway.Place(door) : verticalHallway.Place(door);
             }
             _generatedObjects.AddRange(hallways);
+
+            return;
+            
+            void ReplaceRoom(in RoomNode targetRoom, in RoomCollection collection) {
+                ReadOnlySpan<Door> targetDoors = targetRoom.Archetype.GetDoors(Vector2Int.zero);
+
+                if (targetDoors.Length != 1) {
+                    Debug.LogWarning($"Expected dead-end room to have exactly 1 door, but found {targetDoors.Length}.");
+                }
+
+                // Replace the archetype at the farthest node
+                Door.Direction exitDir = targetDoors[0].GetDirection();
+                targetRoom.Archetype = collection.GetRandomRoomForDirection(_rng, exitDir);
+            }
         }
 
         RoomArchetype[] GetValidRooms(in Door.Direction direction) => _roomsByDir[direction];
@@ -272,21 +310,24 @@ namespace CMPM146.MapGenerator {
             if (Keyboard.current.gKey.wasPressedThisFrame) Generate();
         }
         
+        bool CanSpawnTreasureRoom() {
+            return true;
+        }
     }
 
     [SuppressMessage("ReSharper", "ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator")]
     sealed class RoomNode : IEquatable<RoomNode> {
         public RoomArchetype Archetype { get; set; }
         public readonly Vector2Int Coordinates;
-        public HashSet<RoomNode> Neighbours { get; }
+        HashSet<RoomNode> Neighbours { get; }
 
-        public readonly int Size;
+        readonly int _size;
         
         public RoomNode(in RoomArchetype archetype, in Vector2Int coordinates) {
             Archetype   = archetype;
             Coordinates = coordinates;
             Neighbours  = new HashSet<RoomNode>();
-            Size        = Archetype.GetOccupancy(Vector2Int.zero).Length;
+            _size        = Archetype.GetOccupancy(Vector2Int.zero).Length;
         }
 
 		public void Connect(in RoomNode other) {
@@ -296,7 +337,7 @@ namespace CMPM146.MapGenerator {
 
         public ReadOnlySpan<Vector2Int> GetOccupiedTiles() => Archetype == null ? null : Archetype.GetOccupancy(Coordinates).ToArray();
         
-        #region Path Finding
+                #region Path Finding
         public static List<RoomNode> FindPath(RoomNode start, RoomNode target) {
             if (start == null || target == null) return null;
             if (start == target) return new List<RoomNode> { start };
@@ -342,7 +383,7 @@ namespace CMPM146.MapGenerator {
             while (queue.Count > 0) {
                 (RoomNode current, int dist) = queue.Dequeue();
 
-                bool isSizeMatch = desiredSize < 0 || current.Size == desiredSize;
+                bool isSizeMatch = desiredSize < 0 || current._size == desiredSize;
 
                 if (isSizeMatch && dist > maxDist) {
                     maxDist  = dist;
@@ -358,6 +399,33 @@ namespace CMPM146.MapGenerator {
             return (farthest, maxDist);
         }
 
+        public static List<RoomNode> GetEndRooms(RoomNode start) {
+            if (start == null) {
+                return new List<RoomNode> {
+                    Capacity = 0
+                };
+            }
+
+            List<RoomNode>    endRooms = new();
+            HashSet<RoomNode> visited  = new() { start };
+            Queue<RoomNode>   queue    = new();
+            queue.Enqueue(start);
+
+            while (queue.Count > 0) {
+                RoomNode current = queue.Dequeue();
+
+                if (current.Neighbours.Count == 1 && current._size == 1) {
+                    endRooms.Add(current);
+                }
+
+                foreach (RoomNode neighbour in current.Neighbours) {
+                    if (!visited.Add(neighbour)) continue;
+                    queue.Enqueue(neighbour);
+                }
+            }
+
+            return endRooms;
+        }
         #endregion
         
         #region Equatable

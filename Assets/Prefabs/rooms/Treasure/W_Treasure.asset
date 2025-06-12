@@ -10,24 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9e6c33bf0fdac1a83ac8b57ce1836be5, type: 3}
-  m_Name: 2x3_EW_0
+  m_Name: W_Treasure
   m_EditorClassIdentifier: 
   rooms:
-  - {fileID: 7328084662367532751, guid: d43ccadaa52bbaf468641e8aef9180c9, type: 3}
+  - {fileID: 7328084662367532751, guid: 1ff632ed3e2c596b1a222710943ed426, type: 3}
   doors:
   - GridCoordinates: {x: 0, y: 0}
     direction: 3
     WorldCoordinates: {x: 0, y: 5}
-  - GridCoordinates: {x: 0, y: 2}
-    direction: 3
-    WorldCoordinates: {x: 0, y: 29}
-  - GridCoordinates: {x: 1, y: 1}
-    direction: 1
-    WorldCoordinates: {x: 22, y: 17}
-  - GridCoordinates: {x: 1, y: 2}
-    direction: 1
-    WorldCoordinates: {x: 22, y: 29}
-  Weight: 10
-  Width: 2
-  Height: 3
-  Occupancy: 010101010101
+  Weight: 1
+  Width: 1
+  Height: 1
+  Occupancy: 01
